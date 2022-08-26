@@ -1,18 +1,26 @@
-﻿using System;
+﻿/**************************************************************************************
+
+LogViewerLib.StyledString
+=========================
+
+Defines text formatting supported by LogViewer
+
+Written in 2022 by Jürgpeter Huber 
+Contact: https://github.com/PeterHuberSg/LogViewer
+
+To the extent possible under law, the author(s) have dedicated all copyright and 
+related and neighboring rights to this software to the public domain worldwide under
+the Creative Commons 0 license (details see LICENSE.txt file, see also
+<http://creativecommons.org/publicdomain/zero/1.0/>). 
+
+This software is distributed without any warranty. 
+**************************************************************************************/
+
+
+using System;
 
 
 namespace LogViewerLib {
-
-  #region Delegates
-  //      ---------
-
-  /// <summary>
-  /// Encapsulates a method that takes one or many StyledString as parameter and does not return a value.
-  /// </summary>
-  /// <param name="s"></param>
-  public delegate void ActionStyledStringDelegate(params StyledString[] styledString);
-  #endregion
-
 
   #region Enumerations
   //      ------------
@@ -122,14 +130,13 @@ namespace LogViewerLib {
     /// If there is a new line at the end, it gets removed
     /// </summary>
     public static string RemoveNewLineAtEnd(string newString) {
-      if (newString.EndsWith(Environment.NewLine)) {
-        return newString.Substring(0, newString.Length-2);
-      } else {
-        return newString;
-      }
+      return newString.EndsWith(Environment.NewLine) ? newString.Substring(0, newString.Length-2) : newString;
     }
 
 
+    override public string ToString() {
+      return $"{StringStyle} {LineHandling} '{String}'";
+    }
     #endregion
   }
 }

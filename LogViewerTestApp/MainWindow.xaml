@@ -1,4 +1,22 @@
-﻿<Window x:Class="LogViewerTestApp.MainWindow"
+﻿<!-- **********************************************************************************
+
+LogViewerTestApp.MainWindow
+===========================
+
+WPF application to test the LogViewer control.
+
+Written in 2022 by Jürgpeter Huber 
+Contact: https://github.com/PeterHuberSg/LogViewer
+
+To the extent possible under law, the author(s) have dedicated all copyright and 
+related and neighboring rights to this software to the public domain worldwide under
+the Creative Commons 0 license (details see LICENSE.txt file, see also
+<http://creativecommons.org/publicdomain/zero/1.0/>). 
+
+This software is distributed without any warranty. 
+************************************************************************************ -->
+  
+  <Window x:Class="LogViewerTestApp.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -7,7 +25,57 @@
         xmlns:lvl="clr-namespace:LogViewerLib;assembly=LogViewerLib"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
-    <Grid>
-    <lvl:LogViewer/>
+    <Grid Background="Gainsboro">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="Auto"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+
+    <Label Content="Some Text"/>
+    <lvl:LogViewer Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" x:Name="TestLogViewer" 
+                   ScrollViewer.ScrollChanged="TestLogViewer_ScrollChanged"/>
+
+    <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
+      <StackPanel.Resources>
+        <Style TargetType="TextBox">
+          <Setter Property="VerticalAlignment" Value="Center"/>
+          <Setter Property="Margin" Value="0,3,3,3"/>
+          <Setter Property="IsReadOnly" Value="True"/>
+        </Style>
+        <Style TargetType="ToggleButton">
+          <Setter Property="Margin" Value="3"/>
+        </Style>
+      </StackPanel.Resources>
+      <Label Content="Extent"/>
+      <TextBox x:Name="ExtentTextBox"/>
+      <Label Content="Viewport"/>
+      <TextBox x:Name="ViewportTextBox"/>
+      <Label Content="VerticalOffset"/>
+      <TextBox x:Name="VerticalOffsetTextBox"/>
+      <Label Content="Diff"/>
+      <TextBox Text="b" x:Name="DiffTextBox"/>
+    </StackPanel>
+
+      <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
+      <StackPanel.Resources>
+        <Style TargetType="Button">
+          <Setter Property="Margin" Value="3"/>
+        </Style>
+        <Style TargetType="ToggleButton">
+          <Setter Property="Margin" Value="3"/>
+        </Style>
+      </StackPanel.Resources>
+      <Button x:Name="Test1Button" Content="Test_1"/>
+      <ToggleButton x:Name="Test2Button" Content="Test_2" />
+      <ToggleButton x:Name="Test3Button" Content="Test_3" />
+      <Button x:Name="ClearButton" Content="_Clear" />
+    </StackPanel>
   </Grid>
 </Window>

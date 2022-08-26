@@ -1,13 +1,29 @@
-﻿using System;
+﻿/**************************************************************************************
+
+LogViewerLib.StyledString
+=========================
+
+Defines text formatting supported by LogViewer
+
+Written in 2022 by Jürgpeter Huber 
+Contact: https://github.com/PeterHuberSg/LogViewer
+
+To the extent possible under law, the author(s) have dedicated all copyright and 
+related and neighboring rights to this software to the public domain worldwide under
+the Creative Commons 0 license (details see LICENSE.txt file, see also
+<http://creativecommons.org/publicdomain/zero/1.0/>). 
+
+This software is distributed without any warranty. 
+**************************************************************************************/
+
+
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace LogViewerLib {
 
@@ -40,6 +56,7 @@ namespace LogViewerLib {
     #region Constructor
     //      -----------
 
+    readonly DispatcherTimer wpfTimer = new ();
     readonly FlowDocument flowDoc;
     Paragraph styledParagraph;
 
@@ -51,6 +68,8 @@ namespace LogViewerLib {
       IsReadOnly = true;
       IsUndoEnabled = false;
 
+      wpfTimer.Tick += WpfTimer_Tick;
+      wpfTimer.Interval = TimeSpan.FromMilliseconds(300);
       flowDoc = new FlowDocument();
       Document = flowDoc;
       styledParagraph = getEmptyParagraph();
@@ -70,12 +89,12 @@ namespace LogViewerLib {
 
 
     public void WriteLine() {
-      invokeWrite(new StyledString("", StringStyleEnum.normal, LineHandlingEnum.endOfLine));
+      write(new StyledString("", StringStyleEnum.normal, LineHandlingEnum.endOfLine));
     }
 
 
     public void WriteLine(string line) {
-      invokeWrite(new StyledString(line, LineHandlingEnum.endOfLine));
+      write(new StyledString(line, LineHandlingEnum.endOfLine));
     }
 
 
@@ -85,12 +104,12 @@ namespace LogViewerLib {
     /// might be many WriteTempXxx() be executed.
     /// </summary>
     public void WriteTempLine(string line) {
-      invokeWrite(new StyledString(line, LineHandlingEnum.temporaryEOL));
+      write(new StyledString(line, LineHandlingEnum.temporaryEOL));
     }
 
 
     public void WriteLine(string line, StringStyleEnum stringStyle) {
-      invokeWrite(new StyledString(line, stringStyle, LineHandlingEnum.endOfLine));
+      write(new StyledString(line, stringStyle, LineHandlingEnum.endOfLine));
     }
 
 
@@ -100,27 +119,48 @@ namespace LogViewerLib {
     /// might be many WriteTempXxx() be executed.
     /// </summary>
     public void WriteTempLine(string line, StringStyleEnum stringStyle) {
-      invokeWrite(new StyledString(line, stringStyle, LineHandlingEnum.endOfLine));
+      write(new StyledString(line, stringStyle, LineHandlingEnum.endOfLine));
     }
 
 
     public void Write(string text) {
-      invokeWrite(new StyledString(text));
+      write(new StyledString(text));
     }
 
 
     public void Write(string text, StringStyleEnum stringStyle) {
-      invokeWrite(new StyledString(text, stringStyle));
+      write(new StyledString(text, stringStyle));
     }
 
 
     public void Write(StyledString styledString) {
-      invokeWrite(styledString);
+      write(styledString);
     }
 
 
     public void Write(params StyledString[] styledStrings) {
-      invokeWrite(styledStrings);
+      foreach (var styledString in styledStrings) {
+        write(styledString);
+      }
+    }
+    #endregion
+
+
+    #region Eventhandlers
+    //      -------------
+
+    private void WpfTimer_Tick(object? sender, EventArgs e) {
+      lock (stringBuffers) {
+        var stringBuffer = stringBuffers[stringBufferIndex];
+        if (stringBuffer.Count==0) {
+          isWpfTimerActivated = false;
+          wpfTimer.Stop();
+
+        } else {
+          stringBufferIndex = stringBufferIndex==0 ? 1 : 0;
+          writeLog(stringBuffer);
+        }
+      }
     }
     #endregion
 
@@ -128,24 +168,86 @@ namespace LogViewerLib {
     #region Private methods
     //      ---------------
 
-    private void invokeWrite(object styledObject) {
-      if (!CheckAccess()) {
-        //we are on a different thread, synchronise with the WPF Window thread.
-        this.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
-         new Action<object>(invokeWrite), styledObject);
+    bool isWpfTimerActivated;
+    readonly List<StyledString>[] stringBuffers = { new List<StyledString>(), new List<StyledString>()};
+    int stringBufferIndex;
+
+
+    private void write(StyledString styledString) {
+      lock (stringBuffers) {
+        var stringBuffer = stringBuffers[stringBufferIndex];
+
+        //remove last line if it is temporary
+        var lastStringIndex = stringBuffer.Count-1;
+        if (lastStringIndex>=0) {
+          if (stringBuffer[lastStringIndex].LineHandling==LineHandlingEnum.temporaryEOL) {
+            do {
+              stringBuffer.RemoveAt(lastStringIndex--);
+            } while (lastStringIndex>=0 && stringBuffer[lastStringIndex].LineHandling!=LineHandlingEnum.endOfLine);
+          }
+        }
+
+        stringBuffer.Add(styledString);
+
+        if (!isWpfTimerActivated) {
+          //nothing was written to log for some time. Write styledString immediately to log
+          isWpfTimerActivated = true;
+          if (CheckAccess()) {
+            //running on wpf thread, write to log immediately, which will empty stringBuffer and start WPF timer
+            writeLog(stringBuffer);
+          } else {
+            //running on a different thread, start WPF timer on WPF Window thread.
+            this.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input,
+             new Action(wpfTimer.Start));
+          }
+        }
+      }
+    }
+
+
+    private void writeLog(List<StyledString> stringBuffer) {
+      var needsScrollingToEnd = ExtentHeight<=ViewportHeight || //content is smaller than screen, start automatic scrolling
+        ViewportHeight + VerticalOffset - ExtentHeight==0; //
+
+      //var border = VisualTreeHelper.GetChild(this, 0);
+      //var scrollViewer = (ScrollViewer)VisualTreeHelper.GetChild(border, 0);
+
+      //System.Diagnostics.Debug.WriteLine("");
+      //System.Diagnostics.Debug.WriteLine($"isScrolledToEnd: {needsScrollingToEnd}");
+      //System.Diagnostics.Debug.WriteLine($"Extent: {ExtentHeight}; Viewport: {ViewportHeight}; VerticalOffset: {VerticalOffset} Calc: {VerticalOffset + ViewportHeight - ExtentHeight}");
+
+
+      foreach (var styledString in stringBuffer) {
+        append(styledString);
+      }
+      stringBuffer.Clear();
+      if (needsScrollingToEnd) {
+        ScrollToEnd();
       }
 
-      if (styledObject is StyledString styledString) {
-        append(styledString);
-      } else if (styledObject is StyledString[] styledStrings) {
-        foreach (StyledString styledString2 in styledStrings) {
-          append(styledString2);
-        }
-      } else {
-        throw new NotSupportedException($"LogViewer.Write(): unsupported type '{styledObject.GetType()}' with content '{styledObject}'.");
-      }
-      ScrollToEnd();
+      //System.Diagnostics.Debug.WriteLine($"ScrollToEnd Extent: {ExtentHeight}; Viewport: {ViewportHeight}; VerticalOffset: {VerticalOffset} Calc: {VerticalOffset + ViewportHeight - ExtentHeight}");
+      wpfTimer.Start();
     }
+
+
+    //private void write(object styledObject) {
+    //  if (!CheckAccess()) {
+    //    //we are on a different thread, synchronise with the WPF Window thread.
+    //    this.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
+    //     new Action<object>(write), styledObject);
+    //  }
+
+    //  if (styledObject is StyledString styledString) {
+    //    append(styledString);
+    //  } else if (styledObject is StyledString[] styledStrings) {
+    //    foreach (StyledString styledString2 in styledStrings) {
+    //      append(styledString2);
+    //    }
+    //  } else {
+    //    throw new NotSupportedException($"LogViewer.Write(): unsupported type '{styledObject.GetType()}' with content '{styledObject}'.");
+    //  }
+    //  ScrollToEnd();
+    //}
 
 
     bool lastLineWasTemporary;
@@ -164,22 +266,26 @@ namespace LogViewerLib {
         switch (styledString.StringStyle) {
         case StringStyleEnum.errorHeader:
           styledParagraph.Margin = new Thickness(0, 24, 0, 4);
-          inline = new Bold(new Run(lineString));
-          inline.FontSize = styledParagraph.FontSize * 1.2;
-          inline.Foreground = Brushes.Red;
+          inline = new Bold(new Run(lineString)) {
+            FontSize = styledParagraph.FontSize * 1.2,
+            Foreground = Brushes.Red
+          };
           break;
         case StringStyleEnum.errorText:
-          inline = new Run(lineString);
-          inline.Foreground = Brushes.Red;
+          inline = new Run(lineString) {
+            Foreground = Brushes.Red
+          };
           break;
         case StringStyleEnum.label:
-          inline = new Run(lineString);
-          inline.Foreground = Brushes.MidnightBlue;
+          inline = new Run(lineString) {
+            Foreground = Brushes.MidnightBlue
+          };
           break;
         case StringStyleEnum.header1:
           styledParagraph.Margin = new Thickness(0, 24, 0, 4);
-          inline = new Bold(new Run(lineString));
-          inline.FontSize = styledParagraph.FontSize * 1.2;
+          inline = new Bold(new Run(lineString)) {
+            FontSize = styledParagraph.FontSize * 1.2
+          };
           break;
         case StringStyleEnum.normal:
         case StringStyleEnum.none:
@@ -194,7 +300,7 @@ namespace LogViewerLib {
           styledParagraph.Inlines.Clear();
         }
 
-        //if last styledString was end of line, start a new paragraph to flow document.
+        //if last styledString was end of line, add a new paragraph to flow document.
         if (styledParagraph.Inlines.Count==0) {
           flowDoc.Blocks.Add(styledParagraph);
           if (styledString.LineHandling!=LineHandlingEnum.endOfLine || styledString.String.Length>0) {
@@ -222,24 +328,11 @@ namespace LogViewerLib {
 
 
     private Paragraph getEmptyParagraph() {
-      Paragraph newParagraph = new Paragraph();
-      newParagraph.Margin = new Thickness(0);
+      Paragraph newParagraph = new Paragraph {
+        Margin = new Thickness(0)
+      };
       return newParagraph;
     }
-
-
-    //public void DoEvents() {
-    //  DispatcherFrame frame = new DispatcherFrame();
-    //  Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background,
-    //      new DispatcherOperationCallback(ExitFrames), frame);
-    //  Dispatcher.PushFrame(frame);
-    //}
-
-    //public object ExitFrames(object f) {
-    //  ((DispatcherFrame)f).Continue = false;
-
-    //  return null;
-    //}
     #endregion
 
   }
