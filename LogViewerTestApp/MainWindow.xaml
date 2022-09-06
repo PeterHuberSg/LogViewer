@@ -24,7 +24,7 @@ This software is distributed without any warranty.
         xmlns:local="clr-namespace:LogViewerTestApp"
         xmlns:lvl="clr-namespace:LogViewerLib;assembly=LogViewerLib"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="LogViewer Test" Height="450" Width="800">
     <Grid Background="Gainsboro">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto"/>

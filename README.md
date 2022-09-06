@@ -1,4 +1,5 @@
 # LogViewer
+![LogViewer](LogViewer2.jpg)
 
 *LogViewer* is a WPF control which displays logging information in a 
 *RichTextBox*, scrolling always to the end of the content. *LogViewer* 
@@ -45,7 +46,9 @@ public enum StringStyleEnum {
 ```
 
 You also need to update the *switch* statement in the method 
-*LogViewer.append(StyledString styledString)*. You need to add one
+`StyledString.ToInline(Paragraph styledParagraph, string 
+
+lineString, StyledString styledString)`. You need to add one
 *case* for every value you added to *StringStyleEnum*:
 
 ```csharp
@@ -56,6 +59,9 @@ case StringStyleEnum.errorHeader:
   inline.Foreground = Brushes.Red;
   break;
 ```
+
+For design details and more details see my article on CodeProject:
+https://www.codeproject.com/Articles/5340961/LogViewer-A-fast-WPF-Control-displaying-logging-in
 
 
 

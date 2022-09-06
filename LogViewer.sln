@@ -9,7 +9,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LogViewerLib", "LogViewerLi
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{AB418A7C-5286-466D-A341-B0AEC9315701}"
 	ProjectSection(SolutionItems) = preProject
+		Design.pptx = Design.pptx
 		LICENSE.txt = LICENSE.txt
+		LogViewer2.jpg = LogViewer2.jpg
+		LogViewerSolution.jpg = LogViewerSolution.jpg
+		LogViewerTest.jpg = LogViewerTest.jpg
+		Multithreading.jpg = Multithreading.jpg
+		Multithreading2.jpg = Multithreading2.jpg
 		README.md = README.md
 	EndProjectSection
 EndProject

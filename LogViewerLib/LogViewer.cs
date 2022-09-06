@@ -195,6 +195,7 @@ namespace LogViewerLib {
           if (CheckAccess()) {
             //running on wpf thread, write to log immediately, which will empty stringBuffer and start WPF timer
             writeLog(stringBuffer);
+            stringBuffer.Clear();
           } else {
             //running on a different thread, start WPF timer on WPF Window thread.
             this.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input,
@@ -209,14 +210,6 @@ namespace LogViewerLib {
       var needsScrollingToEnd = ExtentHeight<=ViewportHeight || //content is smaller than screen, start automatic scrolling
         ViewportHeight + VerticalOffset - ExtentHeight==0; //
 
-      //var border = VisualTreeHelper.GetChild(this, 0);
-      //var scrollViewer = (ScrollViewer)VisualTreeHelper.GetChild(border, 0);
-
-      //System.Diagnostics.Debug.WriteLine("");
-      //System.Diagnostics.Debug.WriteLine($"isScrolledToEnd: {needsScrollingToEnd}");
-      //System.Diagnostics.Debug.WriteLine($"Extent: {ExtentHeight}; Viewport: {ViewportHeight}; VerticalOffset: {VerticalOffset} Calc: {VerticalOffset + ViewportHeight - ExtentHeight}");
-
-
       foreach (var styledString in stringBuffer) {
         append(styledString);
       }
@@ -224,30 +217,8 @@ namespace LogViewerLib {
       if (needsScrollingToEnd) {
         ScrollToEnd();
       }
-
-      //System.Diagnostics.Debug.WriteLine($"ScrollToEnd Extent: {ExtentHeight}; Viewport: {ViewportHeight}; VerticalOffset: {VerticalOffset} Calc: {VerticalOffset + ViewportHeight - ExtentHeight}");
       wpfTimer.Start();
     }
-
-
-    //private void write(object styledObject) {
-    //  if (!CheckAccess()) {
-    //    //we are on a different thread, synchronise with the WPF Window thread.
-    //    this.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
-    //     new Action<object>(write), styledObject);
-    //  }
-
-    //  if (styledObject is StyledString styledString) {
-    //    append(styledString);
-    //  } else if (styledObject is StyledString[] styledStrings) {
-    //    foreach (StyledString styledString2 in styledStrings) {
-    //      append(styledString2);
-    //    }
-    //  } else {
-    //    throw new NotSupportedException($"LogViewer.Write(): unsupported type '{styledObject.GetType()}' with content '{styledObject}'.");
-    //  }
-    //  ScrollToEnd();
-    //}
 
 
     bool lastLineWasTemporary;
@@ -260,39 +231,9 @@ namespace LogViewerLib {
 
         //Process every line
         string lineString = lineStrings[lineIndex];
-        Inline inline;
 
         //apply styles
-        switch (styledString.StringStyle) {
-        case StringStyleEnum.errorHeader:
-          styledParagraph.Margin = new Thickness(0, 24, 0, 4);
-          inline = new Bold(new Run(lineString)) {
-            FontSize = styledParagraph.FontSize * 1.2,
-            Foreground = Brushes.Red
-          };
-          break;
-        case StringStyleEnum.errorText:
-          inline = new Run(lineString) {
-            Foreground = Brushes.Red
-          };
-          break;
-        case StringStyleEnum.label:
-          inline = new Run(lineString) {
-            Foreground = Brushes.MidnightBlue
-          };
-          break;
-        case StringStyleEnum.header1:
-          styledParagraph.Margin = new Thickness(0, 24, 0, 4);
-          inline = new Bold(new Run(lineString)) {
-            FontSize = styledParagraph.FontSize * 1.2
-          };
-          break;
-        case StringStyleEnum.normal:
-        case StringStyleEnum.none:
-        default:
-          inline = new Run(lineString);
-          break;
-        }
+        var inline = styledString.ToInline(styledParagraph, lineString);
 
         if (lastLineWasTemporary) {
           //last line was temporary. overwrite it

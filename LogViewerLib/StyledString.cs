@@ -18,6 +18,9 @@ This software is distributed without any warranty.
 
 
 using System;
+using System.Windows;
+using System.Windows.Documents;
+using System.Windows.Media;
 
 
 namespace LogViewerLib {
@@ -35,6 +38,7 @@ namespace LogViewerLib {
     header1,
     errorHeader,
     errorText,
+    stats
   }
 
 
@@ -136,6 +140,84 @@ namespace LogViewerLib {
 
     override public string ToString() {
       return $"{StringStyle} {LineHandling} '{String}'";
+    }
+
+
+    static FontFamily courierNew = new FontFamily("Courier New");
+
+
+    internal Inline ToInline(Paragraph styledParagraph, string lineString) {
+      Inline inline;
+      switch (StringStyle) {
+      case StringStyleEnum.errorHeader:
+        styledParagraph.Margin = new Thickness(0, 24, 0, 4);
+        inline = new Bold(new Run(lineString)) {
+          FontSize = styledParagraph.FontSize * 1.2,
+          Foreground = Brushes.Red
+        };
+        break;
+      case StringStyleEnum.errorText:
+        inline = new Run(lineString) {
+          Foreground = Brushes.Red
+        };
+        break;
+      case StringStyleEnum.label:
+        inline = new Run(lineString) {
+          Foreground = Brushes.MidnightBlue
+        };
+        break;
+      case StringStyleEnum.header1:
+        styledParagraph.Margin = new Thickness(0, 24, 0, 4);
+        inline = new Bold(new Run(lineString)) {
+          FontSize = styledParagraph.FontSize * 1.2
+        };
+        break;
+      case StringStyleEnum.stats:
+        //00:00:01;7;47;35.144 MBytes;0; C:\Users\Peter\OneDrive\OneDriveData\BDSM
+        var span = new Span();
+        var partIndex = 0;
+        var offset = 0;
+        //duration
+        var linePart = getPart(lineString, ref partIndex, ref offset);
+        span.Inlines.Add(new Run(linePart + ' ') { FontFamily = courierNew });
+        //directories
+        linePart = getPart(lineString, ref partIndex, ref offset);
+        span.Inlines.Add(new Run(linePart.PadLeft(6) + " dirs " ) { FontFamily = courierNew });
+        //files
+        linePart = getPart(lineString, ref partIndex, ref offset);
+        span.Inlines.Add(new Run(linePart.PadLeft(6) + ' ') { FontFamily = courierNew });
+        linePart = getPart(lineString, ref partIndex, ref offset);
+        span.Inlines.Add(new Run(linePart.PadLeft(6) + " files ") { FontFamily = courierNew });
+        //size
+        linePart = getPart(lineString, ref partIndex, ref offset);
+        span.Inlines.Add(new Run(linePart.PadLeft(16) + ' ') { FontFamily = courierNew });
+        linePart = getPart(lineString, ref partIndex, ref offset);
+        span.Inlines.Add(new Run(linePart.PadLeft(16) + ' ') { FontFamily = courierNew });
+        //errors
+        linePart = getPart(lineString, ref partIndex, ref offset);
+        span.Inlines.Add(new Run(linePart.PadLeft(3) + " errors ") { FontFamily = courierNew });
+        //comment
+        linePart = lineString[offset..];
+        span.Inlines.Add(new Run(linePart));
+
+        inline = span;
+        break;
+      case StringStyleEnum.normal:
+      case StringStyleEnum.none:
+      default:
+        inline = new Run(lineString);
+        break;
+      }
+      return inline;
+    }
+
+
+    private string getPart(string lineString, ref int partIndex, ref int offset) {
+      var endPos = lineString.IndexOf(";", offset);
+      var part = lineString[offset..endPos];
+      partIndex++;
+      offset = endPos + 1;
+      return part;
     }
     #endregion
   }
