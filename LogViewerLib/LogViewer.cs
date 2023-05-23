@@ -150,17 +150,19 @@ namespace LogViewerLib {
     //      -------------
 
     private void WpfTimer_Tick(object? sender, EventArgs e) {
+      List<StyledString> stringBuffer;
       lock (stringBuffers) {
-        var stringBuffer = stringBuffers[stringBufferIndex];
+        stringBuffer = stringBuffers[stringBufferIndex];
         if (stringBuffer.Count==0) {
           isWpfTimerActivated = false;
           wpfTimer.Stop();
+          return;
 
         } else {
           stringBufferIndex = stringBufferIndex==0 ? 1 : 0;
-          writeLog(stringBuffer);
         }
       }
+      writeLog(stringBuffer);
     }
     #endregion
 
