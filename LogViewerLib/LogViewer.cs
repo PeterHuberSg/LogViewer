@@ -50,6 +50,8 @@ namespace LogViewerLib {
     // DependencyProperty definition
     public static readonly DependencyProperty TemporaryDelayProperty =
         DependencyProperty.Register("TemporaryDelay", typeof(int), typeof(LogViewer), new PropertyMetadata(300));
+
+        public string TimeStampFormat { get; set; } = "hh:mm:ss";
     #endregion
 
 
@@ -248,7 +250,7 @@ namespace LogViewerLib {
           flowDoc.Blocks.Add(styledParagraph);
           if (styledString.LineHandling!=LineHandlingEnum.endOfLine || styledString.String.Length>0) {
             //not an empty line. Add the time
-            Run timeRun = new(styledString.Created.ToString("hh:mm:ss  ")) {
+            Run timeRun = new(styledString.Created.ToString($"{TimeStampFormat}  ")) { 
               Foreground = Brushes.DimGray
             };
             styledParagraph.Inlines.Add(timeRun);
