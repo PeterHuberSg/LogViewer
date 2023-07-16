@@ -51,6 +51,9 @@ namespace LogViewerLib {
     public static readonly DependencyProperty TemporaryDelayProperty =
         DependencyProperty.Register("TemporaryDelay", typeof(int), typeof(LogViewer), new PropertyMetadata(300));
 
+        /// <summary>
+        /// Allows to customize date and time format. Default value is "hh:mm:ss".
+        /// </summary>
         public string TimeStampFormat { get; set; } = "hh:mm:ss";
     #endregion
 
